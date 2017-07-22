@@ -1,6 +1,21 @@
 var setSong = function(songNumber) {
+    if (currentSoundFile) {
+        currentSoundFile.stop();
+    }
     currentlyPlayingSongNumber = parseInt(songNumber);
     currentSongFromAlbum = currentAlbum.songs[songNumber -1];
+    currentSoundFile = new buzz.sound(currentSongFromAlbum.audioUrl, {
+        formats: [ 'mp3' ],
+        preload: true
+    });
+
+    setVolume(currentVolume);
+};
+
+var setVolume = function(volume) {
+    if (currentSoundFile) {
+        currentSoundFile.setVolume(volume);
+    }
 };
 
 var getSongNumberCell = function(number) {
@@ -21,22 +36,32 @@ var createSongRow = function(songNumber, songName, songLength) {
 var clickHandler = function() {
     var songNumber = parseInt($(this).attr('data-song-number'));
 
-    if (setSong !== null) {
+    if (currentlyPlayingSongNumber !== null) {
         // Revert to song number for currently playing song because user started playing new song.
-        var currentlyPlayingCell = getSongNumberCell(setSong);
-        currentlyPlayingCell.html(setSong);
+        var currentlyPlayingCell = getSongNumberCell(currentlyPlayingSongNumber);
+
+        //FIX 01: added line 46
+        currentlyPlayingCell = getSongNumberCell(currentlyPlayingSongNumber);
+        
+        currentlyPlayingCell.html(currentlyPlayingSongNumber);
     }
-    if (setSong !== songNumber) {
+    if (currentlyPlayingSongNumber !== songNumber) {
         // Switch from Play -> Pause button to indicate new song is playing.
-        $(this).html(pauseButtonTemplate);
         setSong(songNumber);
+        currentSoundFile.play();
+        $(this).html(pauseButtonTemplate);
+        currentSongFromAlbum = currentAlbum.songs[songNumber - 1];
         updatePlayerBarSong();
-    } else if (setSong === songNumber) {
-        // Switch from Pause -> Play button to pause currently playing song.
-        $(this).html(playButtonTemplate);
-        $('.main-controls .play-pause').html(playerBarPlayButton);
-        setSong = null;
-        setSong = null;
+    } else if (currentlyPlayingSongNumber === songNumber) {
+        if (currentSoundFile.isPaused()) {
+            $(this).html(pauseButtonTemplate);
+            $('.main-controls .play-pause').html(playerBarPauseButton);
+            currentSoundFile.play();
+        } else {
+            $(this).html(playButtonTemplate);
+            $('.main-controls .play-pause').html(playerBarPauseButton);
+            currentSoundFile.pause();
+        }
     }
 };
 
@@ -44,7 +69,7 @@ var clickHandler = function() {
         var songNumberCell = $(this).find('.song-item-number');
         var songNumber = parseInt(songNumberCell.attr('data-song-number'));
 
-        if (songNumber !== setSong) {
+        if (songNumber !== currentlyPlayingSongNumber) {
             songNumberCell.html(playButtonTemplate);
         }
     };
@@ -53,10 +78,10 @@ var clickHandler = function() {
         var songNumberCell = $(this).find('.song-item-number');
         var songNumber = parseInt(songNumberCell.attr('data-song-number'));
 
-        if (songNumber !== setSong) {
+        if (songNumber !== currentlyPlayingSongNumber) {
             songNumberCell.html(songNumber);
         }
-        console.log("songNumber type is " + typeof songNumber + "\n and setSong type is " + typeof setSong);
+        console.log("songNumber type is " + typeof songNumber + "\n and currentlyPlayingSongNumber type is " + typeof currentlyPlayingSongNumber);
     };
 
     $row.find('.song-item-number').click(clickHandler);
@@ -85,8 +110,13 @@ var setCurrentAlbum = function(album) {
     }
 };
 
+//FIX 02: moved helper function to lines 116-118 from lines 182-184
+var trackIndex = function(album, song) {
+    return album.songs.indexOf(song);
+};
+
 var nextSong = function() {
-    var currentSongIndex = trackIndex(currentAlbum, setSong);
+    var currentSongIndex = trackIndex(currentAlbum, currentSongFromAlbum);
     // Note that we're _incrementing_ the song here
     currentSongIndex++;
 
@@ -95,16 +125,20 @@ var nextSong = function() {
     }
 
     // Save the last song number before changing it
-    var lastSongNumber = setSong;
+    var lastSongNumber = currentlyPlayingSongNumber;
 
     // Set a new current song
-    setSong = currentSongIndex + 1;
-    setSong = currentAlbum.songs[currentSongIndex];
+    setSong(currentSongIndex + 1);
+    currentSoundFile.play();
+    
+    //FIX 03: removed line 138
+    //currentSongFromAlbum = currentAlbum.songs[currentSongIndex];
 
     // Update the Player Bar information
     updatePlayerBarSong();
 
-    var $nextSongNumberCell = getSongNumberCell(setSong);
+    //FIX 04: line 144 replaced setSong in parens w/currentlyPlayingSongNumber 
+    var $nextSongNumberCell = getSongNumberCell(currentlyPlayingSongNumber);
     var $lastSongNumberCell = getSongNumberCell(lastSongNumber);
 
     $nextSongNumberCell.html(pauseButtonTemplate);
@@ -113,7 +147,7 @@ var nextSong = function() {
 
 
 var previousSong = function() {
-    var currentSongIndex = trackIndex(currentAlbum, setSong);
+    var currentSongIndex = trackIndex(currentAlbum, currentSongFromAlbum);
     // Note that we're _decrementing_ the index here
     currentSongIndex--;
 
@@ -122,33 +156,31 @@ var previousSong = function() {
     }
 
     // Save the last song number before changing it
-    var lastSongNumber = setSong;
+    var lastSongNumber = currentlyPlayingSongNumber;
 
     // Set a new current song
-    setSong = currentSongIndex + 1;
-    setSong = currentAlbum.songs[currentSongIndex];
+    setSong(currentSongIndex + 1);
+    currentSoundFile.play();
+    currentSongFromAlbum = currentAlbum.songs[currentSongIndex];
 
     // Update the Player Bar information
     updatePlayerBarSong();
 
     $('.main-controls .play-pause').html(playerBarPauseButton);
 
-    var $previousSongNumberCell = getSongNumberCell(setSong);
+    //FIX 05: line 175 replaced setSong in parens w/currentlyPlayingSongNumber
+    var $previousSongNumberCell = getSongNumberCell(currentlyPlayingSongNumber);
     var $lastSongNumberCell = getSongNumberCell(lastSongNumber);
 
     $previousSongNumberCell.html(pauseButtonTemplate);
     $lastSongNumberCell.html(lastSongNumber);
 };
 
-var trackIndex = function(album, song) {
-    return album.songs.indexOf(song);
-};
-
 var updatePlayerBarSong = function() {
 
-    $('.currently-playing .song-name').text(setSong.title);
+    $('.currently-playing .song-name').text(currentSongFromAlbum.title);
     $('.currently-playing .artist-name').text(currentAlbum.artist);
-    $('.currently-playing .artist-song-mobile').text(setSong.title + " - " + currentAlbum.artist);
+    $('.currently-playing .artist-song-mobile').text(currentSongFromAlbum.title + " - " + currentAlbum.artist);
     $('.main-controls .play-pause').html(playerBarPauseButton);
 };
 
@@ -163,10 +195,11 @@ var playerBarPauseButton = '<span class="ion-pause"></span>';
 var currentAlbum = null;
 var currentlyPlayingSongNumber = null;
 var currentSongFromAlbum = null;
+var currentSoundFile = null;
+var currentVolume = 80;
 
 var $previousButton = $('.main-controls .previous');
 var $nextButton = $('.main-controls .next');
-
  
 $(document).ready(function() {
     setCurrentAlbum(albumPicasso);
