@@ -12,6 +12,26 @@ var setSong = function(songNumber) {
     setVolume(currentVolume);
 };
 
+//ASSIGNMENT 33: 17-32, also see line 56 and 148
+
+var setCurrentTimeInPlayerBar = function(currentTime) {
+    $('.current-time').text(filterTimeCode(currentTime));
+};
+
+var setTotalTimeInPlayer = function(totalTime) {
+    $('.total-time').text(filterTimeCode(currentSongFromAlbum.duration));
+};
+
+var filterTimeCode = function(timeInSeconds) {
+
+    var totalSeconds = parseFloat(timeInSeconds);
+    var minutes = Math.floor(totalSeconds / 60);
+    var seconds = Math.floor(totalSeconds % 60);
+    
+    return minutes + ':' + seconds;
+};
+
+
 var seek = function(time) {
     if (currentSoundFile) {
         currentSoundFile.setTime(time);
@@ -33,7 +53,7 @@ var createSongRow = function(songNumber, songName, songLength) {
         '<tr class="album-view-song-item">'
     + '  <td class="song-item-number" data-song-number="' + songNumber + '">' + songNumber + '</td>'
     + '  <td class="song-item-title">' + songName + '</td>'
-    + '  <td class="song-item-duration">' + songLength + '</td>'
+    + '  <td class="song-item-duration">' + filterTimeCode(songLength) + '</td>'
     + '</tr>'
     ;
  
@@ -124,6 +144,13 @@ var setCurrentAlbum = function(album) {
         $albumSongList.append($newRow);
     }
 };
+    
+/*
+Where did this come from? Commented out because it was causing an error.
+
+document.getElementById("text").innerHTML = filterTimeCode(101.43);
+*/
+
 
 var updateSeekBarWhileSongPlays = function() {
     if (currentSoundFile) {
