@@ -169,8 +169,8 @@ var updateSeekBarWhileSongPlays = function() {
         currentSoundFile.bind('timeupdate', function(event) {
 
             var currentTime = this.getTime();
-            var songLenth = this.getDuration();
-            var seekBarFillRatio = currentTime / songLength();
+            var songLength = this.getDuration();
+            var seekBarFillRatio = currentTime / songLength;
             var $seekBar = $('.seek-control .seek-bar');
  
             updateSeekPercentage($seekBar, seekBarFillRatio);
